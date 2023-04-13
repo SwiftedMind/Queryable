@@ -177,6 +177,67 @@ struct ContentView: View {
 }
 ```
 
+In my opinion, this looks and feels much cleaner and a lot more convenient. As a bonus, we can now reuse the alert for all kinds of things, since it doesn't know anything about its context.
+
+> **Note**
+> It is your responsibility to make sure that every query is answered at some point (unless cancelled, see [below](#cancelling-queries)). Failing to do so will cause undefined behavior and possibly crashes. This is because `Queryable` uses `Continuations` under the hood.
+
+### Passing Down The View Hierarchy
+
+Another interesting thing you can do with `Queryable` is pass it down the view hierarchy. In the following example, `MyChildView` has no idea about the alert from `ContentView`, but it still can query a confirmation and receive a result. If you later swap out the `alert` for a `confirmationDialog` in `ContentView`, nothing changes for `MyChildView`.
+
+```swift
+import SwiftUI
+import Queryable
+
+struct MyChildView: View {
+  // Passed from a parent view
+  var buttonConfirmation: Queryable<Void, Bool>.Trigger
+
+  var body: some View {
+    Button("Confirm Here Instead") {
+      confirm()
+    }
+  }
+
+  @MainActor
+  private func confirm() {
+    Task {
+      do {
+        // This view has no idea how the confirmation is obtained. It doesn't need to!
+        let isConfirmed = try await buttonConfirmation.query()
+        // Do something with the result
+      } catch {}
+    }
+  }
+}
+```
+
+### Providing an Input Value
+
+In the examples above, we've used `Void` as the generic `Input` type for `Queryable`, since the confirmation alert didn't need it. 
+
+### Cancelling Queries
+
+There are a few ways an ongoing query can be cancelled.
+
+- You call the `cancel()` method on the `Queryable` property, for instance `buttonConfiguration.cancel()`.
+- The `Task` that calls the `query()` method is cancelled. When this happens, the query will automatically be cancelled and end the view presentation.
+- The view is dismissed by the system or the user (by swiping down a sheet, for example). The `Queryable` will detect this and cancel any ongoing queries.
+- A new query is started while another one is ongoing. This will either cancel the new one or the ongoing one, depending on the specified [conflict policy](#handling-conflicts).
+
+In all of the above cases, a `QueryCancellationError` will be thrown.
+
+### Handling Conflicts
+
+If you try to start a query while another one is already ongoing, there will be a conflict. The default behavior in that situation is for the previous query to be cancelled. You can alter that by specifying a `QueryConflictPolicy` for you `Queryable`, like so:
+
+```swift
+@Queryable<Void, Bool>(queryConflictPolicy: .cancelNewQuery) var buttonConfirmation
+@Queryable<Void, Bool>(queryConflictPolicy: .cancelPreviousQuery) var otherButtonConfirmation
+```
+
+
 ## Supported Queryable Modifiers
 
 Currently, these are the view modifiers that support being controlled by a `Queryable`:
