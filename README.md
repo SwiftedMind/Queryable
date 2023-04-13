@@ -10,6 +10,9 @@
 `Queryable` is a property wrapper that can trigger a view presentation and `await` its completion from a single `async` function call, while fully hiding the state handling of the presented view.
 
 ```swift
+import SwiftUI
+import Queryable
+
 struct ContentView: View {
   @Queryable<Void, Bool> var buttonConfirmation
 
