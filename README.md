@@ -180,6 +180,7 @@ struct ContentView: View {
 In my opinion, this looks and feels much cleaner and a lot more convenient. As a bonus, we can now reuse the alert for all kinds of things, since it doesn't know anything about its context.
 
 > **Note**
+> 
 > It is your responsibility to make sure that every query is answered at some point (unless cancelled, see [below](#cancelling-queries)). Failing to do so will cause undefined behavior and possibly crashes. This is because `Queryable` uses `Continuations` under the hood.
 
 ### Passing Down The View Hierarchy
@@ -215,11 +216,47 @@ struct MyChildView: View {
 
 ### Providing an Input Value
 
-In the examples above, we've used `Void` as the generic `Input` type for `Queryable`, since the confirmation alert didn't need it. 
+In the examples above, we've used `Void` as the generic `Input` type for `Queryable`, since the confirmation alert didn't need it. But we can pass any value type we want.
+
+For example, let's say we want to present a sheet on which the user can create a new `PlayerItem` that we then save in a database (or send to a backend). By querying with an input of type `PlayerItem`, we can provide the `PlayerEditor` view with data to pre-fill some of the inputs in the form.
+
+```swift
+struct PlayerItem {
+  var name: String
+  /* ... */
+  
+  static var draft: PlayerItem {/* ... */}
+}
+
+struct PlayerListView: View {
+  @Queryable<PlayerItem, PlayerItem> var playerCreation
+  
+  var body: some View {
+    /* ... */
+      .queryableSheet(controlledBy: playerCreation) { playerDraft, query in
+        PlayerEditor(draft: playerDraft, onCompletion: { player in
+          query.answer(with: player)
+        })
+    }
+  }
+
+  @MainActor
+  private func createPlayer() {
+    Task {
+      do {
+        let createdPlayer = try await buttonConfirmation.query(with: PlayerItem.draft)
+        // Store player in database, for example
+      } catch {}
+    }
+  }
+}
+```
+
+This can be incredibly handy.
 
 ### Cancelling Queries
 
-There are a few ways an ongoing query can be cancelled.
+There are a few ways an ongoing query is cancelled.
 
 - You call the `cancel()` method on the `Queryable` property, for instance `buttonConfiguration.cancel()`.
 - The `Task` that calls the `query()` method is cancelled. When this happens, the query will automatically be cancelled and end the view presentation.
