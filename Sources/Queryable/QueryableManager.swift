@@ -22,12 +22,13 @@
 
 import Foundation
 
+/// An internal manager that handles the logic of presenting views and storing continuations.
 @MainActor
 final class QueryableManager<Input, Result>: ObservableObject where Input: Sendable, Result: Sendable {
     private let queryConflictPolicy: QueryConflictPolicy
     var storedContinuationState: ContinuationState?
 
-    /// Optional item storing the input value for a query and is used to indicate if the query has started, which usually coincides with a presentation being shown in a ``Puddles/Provider`` or ``Puddles/Navigator``.
+    /// Optional item storing the input value for a query and is used to indicate if the query has started, which usually coincides with a presentation being shown.
     @Published var itemContainer: ItemContainer?
 
     init(queryConflictPolicy: QueryConflictPolicy) {

@@ -41,7 +41,7 @@ private struct QueryableAlertModifier<Item, Result, Actions: View, Message: View
 
 public extension View {
 
-    /// Shows an alert controlled by a ``Puddles/Queryable``.
+    /// Shows an alert controlled by a ``Queryable/Queryable``.
     @MainActor
     func queryableAlert<Item, Result, Actions: View, Message: View>(
         controlledBy queryable: Queryable<Item, Result>.Trigger,

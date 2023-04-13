@@ -2,7 +2,7 @@ import SwiftUI
 
 public extension View {
 
-    /// Presents a sheet controlled by a ``Puddles/Queryable``.
+    /// Presents a sheet controlled by a ``Queryable/Queryable``.
     @MainActor
     @available(macOS, unavailable)
     func queryableFullScreenCover<Item, Result, Content: View>(
@@ -20,7 +20,7 @@ public extension View {
         }
     }
 
-    /// Presents a sheet controlled by a ``Puddles/Queryable`` whose `Input` is of type `Void`.
+    /// Presents a sheet controlled by a ``Queryable/Queryable`` whose `Input` is of type `Void`.
     ///
     /// This is a convenience overload to remove the unnecessary `item` argument in the `content` ViewBuilder.
     @MainActor

@@ -2,7 +2,7 @@ import SwiftUI
 
 public extension View {
 
-    /// Shows an overlay controlled by a ``Puddles/Queryable``.
+    /// Shows an overlay controlled by a ``Queryable/Queryable``.
     @MainActor
     func queryableOverlay<Item, Result, Content: View>(
         controlledBy queryable: Queryable<Item, Result>.Trigger,
@@ -25,7 +25,7 @@ public extension View {
         }
     }
 
-    /// Shows an overlay controlled by a ``Puddles/Queryable`` whose `Input` is of type `Void`.
+    /// Shows an overlay controlled by a ``Queryable/Queryable`` whose `Input` is of type `Void`.
     ///
     /// This is a convenience overload to remove the unnecessary `item` argument in the `content` ViewBuilder.
     @MainActor

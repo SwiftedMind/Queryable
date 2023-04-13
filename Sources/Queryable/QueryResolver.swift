@@ -22,14 +22,14 @@
 
 import Foundation
 
-/// A type that lets you answer a query made by a call to ``Puddles/Queryable/Trigger/query()``.
+/// A type that lets you answer a query made by a call to ``Queryable/Queryable/Trigger/query()``.
 @MainActor
 public struct QueryResolver<Result>: Sendable {
 
     private let answerHandler: (Result) -> Void
     private let cancelHandler: (Error) -> Void
 
-    /// A type that lets you answer a query made by a call to ``Puddles/Queryable/Trigger/query()``.
+    /// A type that lets you answer a query made by a call to ``Queryable/Queryable/Trigger/query()``.
     init(
         answerHandler: @escaping (Result) -> Void,
         errorHandler: @escaping (Error) -> Void
@@ -44,7 +44,7 @@ public struct QueryResolver<Result>: Sendable {
         answerHandler(result)
     }
 
-    /// Answers the query with an optional result. If it is `nil`,  this will call ``Puddles/QueryResolver/cancelQuery()``.
+    /// Answers the query with an optional result. If it is `nil`,  this will call ``Queryable/QueryResolver/cancelQuery()``.
     /// - Parameter result: The result of the query, as an optional.
     public func answer(withOptional optionalResult: Result?) {
         if let optionalResult {
@@ -65,7 +65,7 @@ public struct QueryResolver<Result>: Sendable {
         cancelHandler(error)
     }
 
-    /// Cancels the query by throwing a ``Puddles/QueryCancellationError`` error.
+    /// Cancels the query by throwing a ``Queryable/QueryCancellationError`` error.
     public func cancelQuery() {
         cancelHandler(QueryCancellationError())
     }

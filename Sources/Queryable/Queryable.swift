@@ -31,7 +31,7 @@ import SwiftUI
 /// @Queryable<String, Bool> var deletionConfirmation
 /// ```
 ///
-/// Then, use one of the `queryable` prefixed presentation modifiers to show the deletion confirmation. Here, we use an alert:
+/// Then, use one of the `queryable` prefixed presentation modifiers to show the deletion confirmation. For instance, here we use an alert:
 ///
 /// ```swift
 /// someView
@@ -49,7 +49,7 @@ import SwiftUI
 ///     }
 /// ```
 ///
-/// To actually present the alert and await the boolean result, call ``Puddles/Queryable/Trigger/query(with:)`` on the ``Puddles/Queryable`` property.
+/// To actually present the alert and await the boolean result, call ``Queryable/Queryable/Trigger/query(with:)`` on the ``Queryable/Queryable`` property.
 /// This will activate the alert presentation which can then resolve the query in its completion handler.
 ///
 /// ```swift
@@ -59,10 +59,8 @@ import SwiftUI
 /// } catch {}
 /// ```
 ///
-/// When the Task that calls ``Puddles/Queryable/Trigger/query(with:)`` is cancelled, the suspended query will also cancel and deactivate (i.e. close) the wrapped navigation presentation.
-/// In that case, a ``Puddles/QueryCancellationError`` error is thrown.
-///
-/// For more information, see <doc:05-Queryable>.
+/// When the Task that calls ``Queryable/Queryable/Trigger/query(with:)`` is cancelled, the suspended query will also cancel and deactivate (i.e. close) the wrapped navigation presentation.
+/// In that case, a ``Queryable/QueryCancellationError`` error is thrown.
 @propertyWrapper
 public struct Queryable<Input, Result>: DynamicProperty where Input: Sendable, Result: Sendable {
 
@@ -84,7 +82,7 @@ public struct Queryable<Input, Result>: DynamicProperty where Input: Sendable, R
 
         /// A binding to the `item` state inside the `@Queryable` property wrapper.
         ///
-        /// This is used internally inside ``Puddles/Queryable/Wrapper/query()``.
+        /// This is used internally inside ``Queryable/Queryable/Wrapper/query()``.
         var itemContainer: Binding<QueryableManager<Input, Result>.ItemContainer?>
 
         /// A property that stores the `Result` type to be used in logging messages.
@@ -105,9 +103,9 @@ public struct Queryable<Input, Result>: DynamicProperty where Input: Sendable, R
 
         /// Requests the collection of data by starting a query on the `Result` type, providing an input value.
         ///
-        /// This method will suspend for as long as the query is unanswered and not cancelled. When the parent Task is cancelled, this method will immediately cancel the query and throw a ``Puddles/QueryCancellationError`` error.
+        /// This method will suspend for as long as the query is unanswered and not cancelled. When the parent Task is cancelled, this method will immediately cancel the query and throw a ``Queryable/QueryCancellationError`` error.
         ///
-        /// Creating multiple queries at the same time will cause a query conflict which is resolved using the ``Puddles/QueryConflictPolicy`` defined in the initializer of ``Puddles/Queryable``. The default policy is ``Puddles/QueryConflictPolicy/cancelPreviousQuery``.
+        /// Creating multiple queries at the same time will cause a query conflict which is resolved using the ``Queryable/QueryConflictPolicy`` defined in the initializer of ``Queryable/Queryable``. The default policy is ``Queryable/QueryConflictPolicy/cancelPreviousQuery``.
         /// - Returns: The result of the query.
         @MainActor
         public func query(with item: Input) async throws -> Result {

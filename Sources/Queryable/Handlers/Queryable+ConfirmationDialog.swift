@@ -41,7 +41,7 @@ private struct QueryableConfirmationDialogModifier<Item, Result, Actions: View, 
 
 public extension View {
 
-    /// Shows a confirmation dialog controlled by a ``Puddles/Queryable``.
+    /// Shows a confirmation dialog controlled by a ``Queryable/Queryable``.
     @MainActor
     func queryableConfirmationDialog<Item, Result, Actions: View, Message: View>(
         controlledBy queryable: Queryable<Item, Result>.Trigger,
