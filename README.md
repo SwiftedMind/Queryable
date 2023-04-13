@@ -1,7 +1,8 @@
 
 <p align="center">
-  <img width="200" height="200" src="https://user-images.githubusercontent.com/7083109/231771342-16b43178-4c4e-40e2-aa96-5dbc7fa3c130.png">
+  <img width="200" height="200" src="https://user-images.githubusercontent.com/7083109/231827191-7472e663-a8f2-42c6-a7aa-77bb38ae484a.png">
 </p>
+
 
 # Queryable
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/SwiftedMind/Queryable?label=Latest%20Release)
