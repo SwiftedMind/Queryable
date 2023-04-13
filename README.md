@@ -3,20 +3,42 @@
   <img width="200" height="200" src="https://user-images.githubusercontent.com/7083109/231827191-7472e663-a8f2-42c6-a7aa-77bb38ae484a.png">
 </p>
 
-
-# Queryable
+# Queryable - Asynchronous View Presentations in SwiftUI
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/SwiftedMind/Queryable?label=Latest%20Release)
 ![GitHub](https://img.shields.io/github/license/SwiftedMind/Queryable)
 
-[Work in Progress]
+`Queryable` is a property wrapper that can trigger a view presentation and `await` its completion from a single `async` function call, while fully hiding the state handling of the presented view.
+
+```swift
+struct ContentView: View {
+  @Queryable<Void, Bool> var buttonConfirmation
+
+  var body: some View {
+    Button("Commit", action: confirm)
+      .queryableAlert(controlledBy: buttonConfirmation, title: "Really?") { item, query in
+          Button("Yes") { query.answer(with: true) }
+          Button("No") { query.answer(with: false) }
+      } message: {_ in}
+  }
+
+  @MainActor
+  private func confirm() {
+    Task {
+      do {
+        let isConfirmed = try await buttonConfirmation.query()
+        // Do something with the result
+      } catch {}
+    }
+  }
+}
+```
+
+Not only does this free the presented view from any kind of context (it simply provides an answer to the query), but you can also pass `buttonConfirmation` down the view hierarchy so that any child view can conveniently trigger the confirmation without needing to deal with the actually displayed UI. It works with `alerts`, `confirmationDialogs`, `sheets`, `fullScreenCover` and fully custom `overlays`.
 
 - [Installation](#installation)
 - **[Get Started](#get-started)**
+- [Supported Queryable Modifiers](#supported-queryable-modifiers)
 - [License](#license)
-
-## Features
-
-[Work in Progress]
 
 ## Installation
 
@@ -34,9 +56,23 @@ Add the following line to the dependencies in your `Package.swift` file:
 
 Go to `File` > `Add Packages...` and enter the URL "https://github.com/SwiftedMind/Queryable" into the search field at the top right. Queryable should appear in the list. Select it and click "Add Package" in the bottom right.
 
+### Usage
+
+To use, simply import the `Queryable` target in your code.
+
+```swift
+import SwiftUI
+import Queryable
+
+struct ContentView: View {
+  @Queryable<Void, Bool> var buttonConfirmation
+  /* ... */
+}
+```
+
 ## Get Started
 
-To explain what problem `Queryable` solves, let's look at an example. Say we have a button whose action needs a confirmation by the user. The confirmation should be presented as an alert with two buttons. 
+To best explain what `Queryable` does, let's look at an example. Say we have a button whose action needs a confirmation by the user. The confirmation should be presented as an alert with two buttons. 
 
 Usually, you would implement this in a way similar to the following:
 
@@ -102,7 +138,7 @@ struct ContentView: View {
 }
 ```
 
-The idea is that this `query()` method would suspend the current task, somehow toggle the presentation of the alert and then resume with the result, all without us ever leaving the scope. The entire user interaction with the UI is contained in this single method call.
+The idea is that this `query()` method would suspend the current task, somehow toggle the presentation of the alert and then resume with the result, all without us ever leaving the scope. The entire user interaction with the UI is contained in this single line.
 
 And that is exactly what `Queryable` does. It's a property wrapper that you can add within any SwiftUI `View` to control view presentations from asynchronous contexts. Here's what it looks like:
 
@@ -111,13 +147,15 @@ import SwiftUI
 import Queryable
 
 struct ContentView: View {
+  // Since we don't need to provide data with the confirmation, we pass `Void` as the Input.
+  // The Result type should be a Bool.
   @Queryable<Void, Bool> var buttonConfirmation
 
   var body: some View {
     Button("Commit") {
       confirm()
     }
-    .queryableAlert( // special alert whose presentation is controller by a Queryable
+    .queryableAlert( // Special alert modifier whose presentation is controller by a Queryable
       controlledBy: buttonConfirmation,
       title: "Do you really want to do this?"
       ) { item, query in
@@ -138,6 +176,18 @@ struct ContentView: View {
   }
 }
 ```
+
+## Supported Queryable Modifiers
+
+Currently, these are the view modifiers that support being controlled by a `Queryable`:
+
+- `queryableAlert(controlledBy:title:actions:message)`
+- `queryableConfirmationDialog(controlledBy:title:actions:message)`
+- `queryableFullScreenCover(controlledBy:onDismiss:content:)`
+- `queryableSheet(controlledBy:onDismiss:content:)`
+- `queryableOverlay(controlledBy:animation:alignment:content:)`
+- `queryableClosure(controlledBy:block:)`
+
 
 ## License
 
