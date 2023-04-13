@@ -21,13 +21,16 @@
 //
 
 import Foundation
+import OSLog
 
-/// A query conflict resolving strategy for situations in which multiple queries are started at the same time.
-public enum QueryConflictPolicy {
+fileprivate(set) var logger: Logger = .init(OSLog.disabled)
 
-    /// A query conflict resolving strategy that cancels the previous, ongoing query to allow the new query to continue.
-    case cancelPreviousQuery
-
-    /// A query conflict resolving strategy that cancels the new query to allow the previous, ongoing query to continue.
-    case cancelNewQuery
+public extension Queryable {
+    /// Configures and enables a logger that prints out log messages for events inside the Queryable framework.
+    ///
+    /// This can be useful for debugging.
+    /// - Parameter subsystem: The subsystem. If none is provided, the bundle's identifier will try to be used and if it is specifically set to `nil`, then `Queryable` will be used.
+    static func configureLog(inSubsystem subsystem: String? = Bundle.main.bundleIdentifier) {
+        logger = .init(subsystem: subsystem ?? "Queryable", category: "Queryable")
+    }
 }

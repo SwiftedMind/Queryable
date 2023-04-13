@@ -20,14 +20,47 @@
 //  SOFTWARE.
 //
 
-import Foundation
+import SwiftUI
+import Queryable
 
-/// A query conflict resolving strategy for situations in which multiple queries are started at the same time.
-public enum QueryConflictPolicy {
+struct Item: Identifiable {
+    var id = UUID()
+}
+struct ItemEditView: View {
+    var body: some View {
+        Text("")
+    }
+}
 
-    /// A query conflict resolving strategy that cancels the previous, ongoing query to allow the new query to continue.
-    case cancelPreviousQuery
+struct ContentView: View {
+    @Queryable<Void, Bool> var confirmation
 
-    /// A query conflict resolving strategy that cancels the new query to allow the previous, ongoing query to continue.
-    case cancelNewQuery
+    var body: some View {
+        Button("Do it!") {
+            queryConfirmation()
+        }
+        .queryableAlert(
+            controlledBy: confirmation,
+            title: "Do you really want to do this?") { item, query in
+                Button("Yes") { query.answer(with: true) }
+                Button("No") { query.answer(with: false) }
+            } message: {_ in}
+    }
+
+    @MainActor
+    private func queryConfirmation() {
+        Task {
+            do {
+                if try await confirmation.query() {
+                    // Confirmed
+                }
+            } catch {}
+        }
+    }
+}
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
 }
