@@ -20,9 +20,6 @@ let package = Package(
     targets: [
         .target(
             name: "Queryable",
-            dependencies: []),
-        .testTarget(
-            name: "QueryableTests",
-            dependencies: ["Queryable"]),
+            dependencies: [])
     ]
 )
