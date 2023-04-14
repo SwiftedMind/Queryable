@@ -4,6 +4,8 @@
 </p>
 
 # Queryable - Asynchronous View Presentations in SwiftUI
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FSwiftedMind%2FQueryable%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/SwiftedMind/Queryable)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FSwiftedMind%2FQueryable%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/SwiftedMind/Queryable)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/SwiftedMind/Queryable?label=Latest%20Release)
 ![GitHub](https://img.shields.io/github/license/SwiftedMind/Queryable)
 
