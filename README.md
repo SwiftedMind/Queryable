@@ -108,7 +108,7 @@ struct ContentView: View {
 
 The code is fairly simple. We toggle the alert presentation whenever the button is pressed and then call `confirmAction(_:)` with the answer the user has given. There's nothing wrong with this approach, it works perfectly fine.
 
-However, I believe there is a much more convenient way of doing it. If you think about it, triggering the presentation of an alert and waiting for some kind of result – the user's confirmation in this case –is basically just an asynchronous operation. In Swift, there's a mechanism for that: *Swift Concurrency*.
+However, I believe there is a much more convenient way of doing it. If you think about it, triggering the presentation of an alert and waiting for some kind of result – the user's confirmation in this case – is basically just an asynchronous operation. In Swift, there's a mechanism for that: *Swift Concurrency*.
 
 Wouldn't it be awesome if we could simply `await` the confirmation and get the result as the return value of a single `async` function call? Something like this:
 
