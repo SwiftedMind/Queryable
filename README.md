@@ -160,7 +160,7 @@ struct ContentView: View {
     Button("Commit") {
       confirm()
     }
-    .queryableAlert( // Special alert modifier whose presentation is controller by a Queryable
+    .queryableAlert( // Special alert modifier whose presentation is controlled by a Queryable
       controlledBy: buttonConfirmation,
       title: "Do you really want to do this?"
       ) { item, query in
