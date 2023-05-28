@@ -101,6 +101,11 @@ public struct Queryable<Input, Result>: DynamicProperty where Input: Sendable, R
             self.manager = manager
         }
 
+        @MainActor
+        public static var empty: Self {
+            .init(itemContainer: .constant(nil), manager: .init(queryConflictPolicy: .cancelNewQuery))
+        }
+
         /// Requests the collection of data by starting a query on the `Result` type, providing an input value.
         ///
         /// This method will suspend for as long as the query is unanswered and not cancelled. When the parent Task is cancelled, this method will immediately cancel the query and throw a ``Queryable/QueryCancellationError`` error.
