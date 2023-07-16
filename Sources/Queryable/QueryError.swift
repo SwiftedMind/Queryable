@@ -23,4 +23,15 @@
 import Foundation
 
 /// An error indicating the cancellation of a query.
-public struct QueryCancellationError: Swift.Error {}
+public struct QueryCancellationError: Swift.Error, CustomStringConvertible {
+
+    public var reason: String?
+    public var description: String {
+        reason ?? String(describing: self)
+    }
+
+    public init(reason: String? = nil) {
+        self.reason = reason
+    }
+}
+
