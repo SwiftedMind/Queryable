@@ -21,19 +21,63 @@
 //
 
 import Foundation
+import Combine
 
 /// An internal manager that handles the logic of presenting views and storing continuations.
 @MainActor
-final class QueryableManager<Input, Result>: ObservableObject where Input: Sendable, Result: Sendable {
+public final class QueryableState<Input, Result>: ObservableObject where Input: Sendable, Result: Sendable {
     private let queryConflictPolicy: QueryConflictPolicy
     var storedContinuationState: ContinuationState?
 
     /// Optional item storing the input value for a query and is used to indicate if the query has started, which usually coincides with a presentation being shown.
     @Published var itemContainer: ItemContainer?
 
-    init(queryConflictPolicy: QueryConflictPolicy) {
+    public init(queryConflictPolicy: QueryConflictPolicy = .cancelNewQuery) {
         self.queryConflictPolicy = queryConflictPolicy
     }
+
+    // MARK: - Public Interface
+
+    /// Requests the collection of data by starting a query on the `Result` type, providing an input value.
+    ///
+    /// This method will suspend for as long as the query is unanswered and not cancelled. When the parent Task is cancelled, this method will immediately cancel the query and throw a ``Queryable/QueryCancellationError`` error.
+    ///
+    /// Creating multiple queries at the same time will cause a query conflict which is resolved using the ``Queryable/QueryConflictPolicy`` defined in the initializer of ``Queryable/Queryable``. The default policy is ``Queryable/QueryConflictPolicy/cancelPreviousQuery``.
+    /// - Returns: The result of the query.
+    public func query(with item: Input) async throws -> Result {
+        let id = UUID()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                storeContinuation(continuation, withId: id, item: item)
+            }
+        } onCancel: {
+            Task {
+                await autoCancelContinuation(id: id, reason: .taskCancelled)
+            }
+        }
+    }
+
+    /// Requests the collection of data by starting a query on the `Result` type, providing an input value.
+    ///
+    /// This method will suspend for as long as the query is unanswered and not cancelled. When the parent Task is cancelled, this method will immediately cancel the query and throw a ``Queryable/QueryCancellationError`` error.
+    ///
+    /// Creating multiple queries at the same time will cause a query conflict which is resolved using the ``Queryable/QueryConflictPolicy`` defined in the initializer of ``Queryable/Queryable``. The default policy is ``Queryable/QueryConflictPolicy/cancelPreviousQuery``.
+    /// - Returns: The result of the query.
+    public func query() async throws -> Result where Input == Void {
+        try await query(with: ())
+    }
+
+    /// Cancels any ongoing queries.
+    public func cancel() {
+        itemContainer?.resolver.answer(throwing: QueryCancellationError())
+    }
+
+    /// A flag indicating if a query is active.
+    public var isQuerying: Bool {
+        itemContainer != nil
+    }
+
+    // MARK: - Internal Interface
 
     func storeContinuation(
         _ newContinuation: CheckedContinuation<Result, Swift.Error>,
@@ -54,28 +98,14 @@ final class QueryableManager<Input, Result>: ObservableObject where Input: Senda
             }
         }
 
-        let resolver = QueryResolver<Result> { [weak self] result in
-            self?.resumeContinuation(returning: result, queryId: id)
-        } errorHandler: { [weak self] error in
-            self?.resumeContinuation(throwing: error, queryId: id)
+        let resolver = QueryResolver<Result> { result in
+            self.resumeContinuation(returning: result, queryId: id)
+        } errorHandler: {  error in
+            self.resumeContinuation(throwing: error, queryId: id)
         }
 
         storedContinuationState = .init(queryId: id, continuation: newContinuation)
         itemContainer = .init(queryId: id, item: item, resolver: resolver)
-    }
-
-    private func resumeContinuation(returning result: Result, queryId: UUID) {
-        guard itemContainer?.id == queryId else { return }
-        storedContinuationState?.continuation.resume(returning: result)
-        storedContinuationState = nil
-        itemContainer = nil
-    }
-
-    private func resumeContinuation(throwing error: Error, queryId: UUID) {
-        guard itemContainer?.id == queryId else { return }
-        storedContinuationState?.continuation.resume(throwing: error)
-        storedContinuationState = nil
-        itemContainer = nil
     }
 
     func autoCancelContinuation(id: UUID, reason: AutoCancelReason) {
@@ -94,6 +124,26 @@ final class QueryableManager<Input, Result>: ObservableObject where Input: Senda
         }
     }
 
+    // MARK: - Private Interface
+
+    private func resumeContinuation(returning result: Result, queryId: UUID) {
+        guard itemContainer?.id == queryId else { return }
+        storedContinuationState?.continuation.resume(returning: result)
+        storedContinuationState = nil
+        itemContainer = nil
+    }
+
+    private func resumeContinuation(throwing error: Error, queryId: UUID) {
+        guard itemContainer?.id == queryId else { return }
+        storedContinuationState?.continuation.resume(throwing: error)
+        storedContinuationState = nil
+        itemContainer = nil
+    }
+}
+
+// MARK: - Auxiliary Types
+
+extension QueryableState {
     struct ItemContainer: Sendable, Identifiable {
         var id: UUID { queryId }
         let queryId: UUID

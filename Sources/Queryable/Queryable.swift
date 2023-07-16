@@ -63,84 +63,63 @@ import SwiftUI
 /// In that case, a ``Queryable/QueryCancellationError`` error is thrown.
 @propertyWrapper
 public struct Queryable<Input, Result>: DynamicProperty where Input: Sendable, Result: Sendable {
+    @StateObject private var queryableState: QueryableState<Input, Result>
 
-    public var wrappedValue: Trigger {
-        .init(
-            itemContainer: $manager.itemContainer,
-            manager: manager
-        )
+    public var wrappedValue: Trigger<Input, Result> {
+        .init(queryableState: queryableState)
     }
 
-    @StateObject private var manager: QueryableManager<Input, Result>
 
     public init(queryConflictPolicy: QueryConflictPolicy = .cancelPreviousQuery) {
-        _manager = .init(wrappedValue: .init(queryConflictPolicy: queryConflictPolicy))
+        _queryableState = .init(wrappedValue: .init(queryConflictPolicy: queryConflictPolicy))
+    }
+}
+
+/// A type that is capable of triggering and cancelling a query.
+public struct Trigger<Input, Result> where Input: Sendable, Result: Sendable {
+
+    /// A property that stores the `Result` type to be used in logging messages.
+    var expectedType: Result.Type {
+        Result.self
     }
 
-    /// A type that is capable of triggering and cancelling a query.
-    public struct Trigger {
+    var queryableState: QueryableState<Input, Result>
 
-        /// A binding to the `item` state inside the `@Queryable` property wrapper.
-        ///
-        /// This is used internally inside ``Queryable/Queryable/Wrapper/query()``.
-        var itemContainer: Binding<QueryableManager<Input, Result>.ItemContainer?>
+    /// A representation of the `Queryable` property wrapper type. This can be passed to `queryable` prefixed presentation modifiers, like `queryableSheet`.
+    init(queryableState: QueryableState<Input, Result>) {
+        self.queryableState = queryableState
+    }
 
-        /// A property that stores the `Result` type to be used in logging messages.
-        var expectedType: Result.Type {
-            Result.self
-        }
+    @MainActor
+    public static var empty: Self {
+        .init(queryableState: .init(queryConflictPolicy: .cancelNewQuery))
+    }
 
-        var manager: QueryableManager<Input, Result>
+    /// Requests the collection of data by starting a query on the `Result` type, providing an input value.
+    ///
+    /// This method will suspend for as long as the query is unanswered and not cancelled. When the parent Task is cancelled, this method will immediately cancel the query and throw a ``Queryable/QueryCancellationError`` error.
+    ///
+    /// Creating multiple queries at the same time will cause a query conflict which is resolved using the ``Queryable/QueryConflictPolicy`` defined in the initializer of ``Queryable/Queryable``. The default policy is ``Queryable/QueryConflictPolicy/cancelPreviousQuery``.
+    /// - Returns: The result of the query.
+    @MainActor
+    public func query(with item: Input) async throws -> Result {
+        try await queryableState.query(with: item)
+    }
 
-        /// A representation of the `Queryable` property wrapper type. This can be passed to `queryable` prefixed presentation modifiers, like `queryableSheet`.
-        init(
-            itemContainer: Binding<QueryableManager<Input, Result>.ItemContainer?>,
-            manager: QueryableManager<Input, Result>
-        ) {
-            self.itemContainer = itemContainer
-            self.manager = manager
-        }
+    @MainActor
+    public func query() async throws -> Result where Input == Void {
+        try await query(with: ())
+    }
 
-        @MainActor
-        public static var empty: Self {
-            .init(itemContainer: .constant(nil), manager: .init(queryConflictPolicy: .cancelNewQuery))
-        }
+    /// Cancels any ongoing queries.
+    @MainActor
+    public func cancel() {
+        queryableState.cancel()
+    }
 
-        /// Requests the collection of data by starting a query on the `Result` type, providing an input value.
-        ///
-        /// This method will suspend for as long as the query is unanswered and not cancelled. When the parent Task is cancelled, this method will immediately cancel the query and throw a ``Queryable/QueryCancellationError`` error.
-        ///
-        /// Creating multiple queries at the same time will cause a query conflict which is resolved using the ``Queryable/QueryConflictPolicy`` defined in the initializer of ``Queryable/Queryable``. The default policy is ``Queryable/QueryConflictPolicy/cancelPreviousQuery``.
-        /// - Returns: The result of the query.
-        @MainActor
-        public func query(with item: Input) async throws -> Result {
-            let id = UUID()
-            return try await withTaskCancellationHandler {
-                try await withCheckedThrowingContinuation { continuation in
-                    manager.storeContinuation(continuation, withId: id, item: item)
-                }
-            } onCancel: {
-                Task {
-                    await manager.autoCancelContinuation(id: id, reason: .taskCancelled)
-                }
-            }
-        }
-
-        @MainActor
-        public func query() async throws -> Result where Input == Void {
-            try await query(with: ())
-        }
-
-        /// Cancels any ongoing queries.
-        @MainActor
-        public func cancel() {
-            manager.itemContainer?.resolver.answer(throwing: QueryCancellationError())
-        }
-
-        /// A flag indicating if a query is active.
-        @MainActor
-        public var isQuerying: Bool {
-            itemContainer.wrappedValue != nil
-        }
+    /// A flag indicating if a query is active.
+    @MainActor
+    public var isQuerying: Bool {
+        queryableState.isQuerying
     }
 }

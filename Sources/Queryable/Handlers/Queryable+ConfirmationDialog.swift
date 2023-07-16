@@ -1,10 +1,9 @@
 import SwiftUI
 
-private struct QueryableConfirmationDialogModifier<Item, Result, Actions: View, Message: View>: ViewModifier {
-
+private struct ConfirmationDialogModifier<Item, Result, Actions: View, Message: View>: ViewModifier {
     @State private var ids: [UUID] = []
 
-    var queryable: Queryable<Item, Result>.Trigger
+    @ObservedObject var queryableState: QueryableState<Item, Result>
     var title: String
     @ViewBuilder var actions: (_ item: Item, _ query: QueryResolver<Result>) -> Actions
     @ViewBuilder var message: (_ item: Item) -> Message
@@ -12,7 +11,7 @@ private struct QueryableConfirmationDialogModifier<Item, Result, Actions: View, 
     func body(content: Content) -> some View {
         content
             .background {
-                if let initialItemContainer = queryable.itemContainer.wrappedValue {
+                if let initialItemContainer = queryableState.itemContainer {
                     ZStack {
                         StableItemContainerView(itemContainer: initialItemContainer) { itemContainer in
                             Color.clear
@@ -25,7 +24,7 @@ private struct QueryableConfirmationDialogModifier<Item, Result, Actions: View, 
                                     message(itemContainer.item)
                                         .onDisappear {
                                             if let id = ids.first {
-                                                queryable.manager.autoCancelContinuation(id: id, reason: .presentationEnded)
+                                                queryableState.autoCancelContinuation(id: id, reason: .presentationEnded)
                                                 ids.removeFirst()
                                             }
                                         }
@@ -40,27 +39,53 @@ private struct QueryableConfirmationDialogModifier<Item, Result, Actions: View, 
 }
 
 public extension View {
-
+    
     /// Shows a confirmation dialog controlled by a ``Queryable/Queryable``.
     @MainActor
     func queryableConfirmationDialog<Item, Result, Actions: View, Message: View>(
-        controlledBy queryable: Queryable<Item, Result>.Trigger,
+        controlledBy queryable: Trigger<Item, Result>,
         title: String,
         @ViewBuilder actions: @escaping (_ item: Item, _ query: QueryResolver<Result>) -> Actions,
         @ViewBuilder message: @escaping (_ item: Item) -> Message
     ) -> some View {
-        modifier(QueryableConfirmationDialogModifier(queryable: queryable, title: title, actions: actions, message: message))
+        modifier(ConfirmationDialogModifier(queryableState: queryable.queryableState, title: title, actions: actions, message: message))
     }
-
+    
     @MainActor
     func queryableConfirmationDialog<Result, Actions: View, Message: View>(
-        controlledBy queryable: Queryable<Void, Result>.Trigger,
+        controlledBy queryable: Trigger<Void, Result>,
         title: String,
         @ViewBuilder actions: @escaping (_ query: QueryResolver<Result>) -> Actions,
         @ViewBuilder message: @escaping () -> Message
     ) -> some View {
         modifier(
-            QueryableConfirmationDialogModifier(queryable: queryable, title: title) { _, query in
+            ConfirmationDialogModifier(queryableState: queryable.queryableState, title: title) { _, query in
+                actions(query)
+            } message: { _ in
+                message()
+            }
+        )
+    }
+
+    @MainActor
+    func queryableConfirmationDialog<Item, Result, Actions: View, Message: View>(
+        controlledBy queryableState: QueryableState<Item, Result>,
+        title: String,
+        @ViewBuilder actions: @escaping (_ item: Item, _ query: QueryResolver<Result>) -> Actions,
+        @ViewBuilder message: @escaping (_ item: Item) -> Message
+    ) -> some View {
+        modifier(ConfirmationDialogModifier(queryableState: queryableState, title: title, actions: actions, message: message))
+    }
+
+    @MainActor
+    func queryableConfirmationDialog<Result, Actions: View, Message: View>(
+        controlledBy queryableState: QueryableState<Void, Result>,
+        title: String,
+        @ViewBuilder actions: @escaping (_ query: QueryResolver<Result>) -> Actions,
+        @ViewBuilder message: @escaping () -> Message
+    ) -> some View {
+        modifier(
+            ConfirmationDialogModifier(queryableState: queryableState, title: title) { _, query in
                 actions(query)
             } message: { _ in
                 message()
