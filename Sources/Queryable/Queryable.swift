@@ -20,15 +20,15 @@
 //  SOFTWARE.
 //
 
+import Foundation
 import Combine
-import SwiftUI
 
 /// A property wrapper type that can trigger a view presentation from within an `async` function and `await` its completion and potential result value.
 ///
 /// An example use case would be a boolean coming from a confirmation dialog view. First, create a property of the desired data type:
 ///
 /// ```swift
-/// @Queryable<String, Bool> var deletionConfirmation
+/// @StateObject var deletionConfirmation = Queryable<String, Bool>()
 /// ```
 ///
 /// Then, use one of the `queryable` prefixed presentation modifiers to show the deletion confirmation. For instance, here we use an alert:
@@ -61,38 +61,36 @@ import SwiftUI
 ///
 /// When the Task that calls ``Queryable/Queryable/Trigger/query(with:)`` is cancelled, the suspended query will also cancel and deactivate (i.e. close) the wrapped navigation presentation.
 /// In that case, a ``Queryable/QueryCancellationError`` error is thrown.
-@propertyWrapper
-public struct Queryable<Input, Result>: DynamicProperty where Input: Sendable, Result: Sendable {
-    @StateObject private var queryableState: QueryableState<Input, Result>
+@MainActor public final class Queryable<Input, Result>: ObservableObject where Input: Sendable, Result: Sendable {
+    private let queryConflictPolicy: QueryConflictPolicy
+    var storedContinuationState: ContinuationState?
 
-    public var wrappedValue: Trigger<Input, Result> {
-        .init(queryableState: queryableState)
+    /// Optional item storing the input value for a query and is used to indicate if the query has started, which usually coincides with a presentation being shown.
+    var itemContainer: ItemContainer?
+
+    public init(queryConflictPolicy: QueryConflictPolicy = .cancelNewQuery) {
+        self.queryConflictPolicy = queryConflictPolicy
     }
 
+    // MARK: - Public Interface
 
-    public init(queryConflictPolicy: QueryConflictPolicy = .cancelPreviousQuery) {
-        _queryableState = .init(wrappedValue: .init(queryConflictPolicy: queryConflictPolicy))
-    }
-}
-
-/// A type that is capable of triggering and cancelling a query.
-public struct Trigger<Input, Result> where Input: Sendable, Result: Sendable {
-
-    /// A property that stores the `Result` type to be used in logging messages.
-    var expectedType: Result.Type {
-        Result.self
-    }
-
-    var queryableState: QueryableState<Input, Result>
-
-    /// A representation of the `Queryable` property wrapper type. This can be passed to `queryable` prefixed presentation modifiers, like `queryableSheet`.
-    init(queryableState: QueryableState<Input, Result>) {
-        self.queryableState = queryableState
-    }
-
-    @MainActor
-    public static var empty: Self {
-        .init(queryableState: .init(queryConflictPolicy: .cancelNewQuery))
+    /// Requests the collection of data by starting a query on the `Result` type, providing an input value.
+    ///
+    /// This method will suspend for as long as the query is unanswered and not cancelled. When the parent Task is cancelled, this method will immediately cancel the query and throw a ``Queryable/QueryCancellationError`` error.
+    ///
+    /// Creating multiple queries at the same time will cause a query conflict which is resolved using the ``Queryable/QueryConflictPolicy`` defined in the initializer of ``Queryable/Queryable``. The default policy is ``Queryable/QueryConflictPolicy/cancelPreviousQuery``.
+    /// - Returns: The result of the query.
+    public func query(with item: Input) async throws -> Result {
+        let id = UUID()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                storeContinuation(continuation, withId: id, item: item)
+            }
+        } onCancel: {
+            Task {
+                await autoCancelContinuation(id: id, reason: .taskCancelled)
+            }
+        }
     }
 
     /// Requests the collection of data by starting a query on the `Result` type, providing an input value.
@@ -101,25 +99,107 @@ public struct Trigger<Input, Result> where Input: Sendable, Result: Sendable {
     ///
     /// Creating multiple queries at the same time will cause a query conflict which is resolved using the ``Queryable/QueryConflictPolicy`` defined in the initializer of ``Queryable/Queryable``. The default policy is ``Queryable/QueryConflictPolicy/cancelPreviousQuery``.
     /// - Returns: The result of the query.
-    @MainActor
-    public func query(with item: Input) async throws -> Result {
-        try await queryableState.query(with: item)
-    }
-
-    @MainActor
     public func query() async throws -> Result where Input == Void {
         try await query(with: ())
     }
 
     /// Cancels any ongoing queries.
-    @MainActor
     public func cancel() {
-        queryableState.cancel()
+        objectWillChange.send()
+        itemContainer?.resolver.answer(throwing: QueryCancellationError())
     }
 
     /// A flag indicating if a query is active.
-    @MainActor
     public var isQuerying: Bool {
-        queryableState.isQuerying
+        itemContainer != nil
+    }
+
+    // MARK: - Internal Interface
+
+    func storeContinuation(
+        _ newContinuation: CheckedContinuation<Result, Swift.Error>,
+        withId id: UUID,
+        item: Input
+    ) {
+        if let storedContinuationState {
+            switch queryConflictPolicy {
+            case .cancelPreviousQuery:
+                logger.warning("Cancelling previous query of »\(Result.self, privacy: .public)« to allow new query.")
+                storedContinuationState.continuation.resume(throwing: QueryCancellationError())
+                self.storedContinuationState = nil
+                objectWillChange.send()
+                self.itemContainer = nil
+            case .cancelNewQuery:
+                logger.warning("Cancelling new query of »\(Result.self, privacy: .public)« because another query is ongoing.")
+                newContinuation.resume(throwing: QueryCancellationError())
+                return
+            }
+        }
+
+        let resolver = QueryResolver<Result> { result in
+            self.resumeContinuation(returning: result, queryId: id)
+        } errorHandler: {  error in
+            self.resumeContinuation(throwing: error, queryId: id)
+        }
+
+        storedContinuationState = .init(queryId: id, continuation: newContinuation)
+        objectWillChange.send()
+        itemContainer = .init(queryId: id, item: item, resolver: resolver)
+    }
+
+    func autoCancelContinuation(id: UUID, reason: AutoCancelReason) {
+        // If the user cancels a query programmatically and immediately starts the next one, we need to prevent the `QueryInternalError.queryAutoCancel` from the `onDisappear` handler of the canceled query to cancel the new query. That's why the presentations store an id
+        if storedContinuationState?.queryId == id {
+            switch reason {
+            case .presentationEnded:
+                logger.notice("Cancelling query of »\(Result.self, privacy: .public)« because presentation has terminated.")
+            case .taskCancelled:
+                logger.notice("Cancelling query of »\(Result.self, privacy: .public)« because the task was cancelled.")
+            }
+
+            storedContinuationState?.continuation.resume(throwing: QueryCancellationError())
+            storedContinuationState = nil
+            objectWillChange.send()
+            itemContainer = nil
+        }
+    }
+
+    // MARK: - Private Interface
+
+    private func resumeContinuation(returning result: Result, queryId: UUID) {
+        guard itemContainer?.id == queryId else { return }
+        storedContinuationState?.continuation.resume(returning: result)
+        storedContinuationState = nil
+        objectWillChange.send()
+        itemContainer = nil
+    }
+
+    private func resumeContinuation(throwing error: Error, queryId: UUID) {
+        guard itemContainer?.id == queryId else { return }
+        storedContinuationState?.continuation.resume(throwing: error)
+        storedContinuationState = nil
+        objectWillChange.send()
+        itemContainer = nil
+    }
+}
+
+// MARK: - Auxiliary Types
+
+extension Queryable {
+    struct ItemContainer: Sendable, Identifiable {
+        var id: UUID { queryId }
+        let queryId: UUID
+        var item: Input
+        var resolver: QueryResolver<Result>
+    }
+
+    struct ContinuationState: Sendable {
+        let queryId: UUID
+        var continuation: CheckedContinuation<Result, Swift.Error>
+    }
+
+    enum AutoCancelReason {
+        case presentationEnded
+        case taskCancelled
     }
 }

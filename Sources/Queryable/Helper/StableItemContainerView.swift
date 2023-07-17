@@ -29,10 +29,10 @@ import SwiftUI
 struct StableItemContainerView<Content: View, Input, Result>: View where Input: Sendable, Result: Sendable {
 
     /// A private state property to store the initial item container.
-    @State private var itemContainer: QueryableState<Input, Result>.ItemContainer
+    @State private var itemContainer: Queryable<Input, Result>.ItemContainer
 
     /// A closure that defines the content of the view, accepting the item container as its argument.
-    private let content: (_ itemContainer: QueryableState<Input, Result>.ItemContainer) -> Content
+    private let content: (_ itemContainer: Queryable<Input, Result>.ItemContainer) -> Content
 
     /// Initializes a new `StableItemContainerView` with the given item container and a closure
     /// that defines the content of the view.
@@ -43,8 +43,8 @@ struct StableItemContainerView<Content: View, Input, Result>: View where Input: 
     ///   - content: A closure that defines the content of the view, which accepts the item container
     ///              as its argument.
     init(
-        itemContainer: QueryableState<Input, Result>.ItemContainer,
-        @ViewBuilder content: @escaping (_ itemContainer: QueryableState<Input, Result>.ItemContainer) -> Content
+        itemContainer: Queryable<Input, Result>.ItemContainer,
+        @ViewBuilder content: @escaping (_ itemContainer: Queryable<Input, Result>.ItemContainer) -> Content
     ) {
         _itemContainer = .init(initialValue: itemContainer)
         self.content = content
