@@ -31,6 +31,18 @@ import Combine
 /// @StateObject var deletionConfirmation = Queryable<String, Bool>()
 /// ```
 ///
+/// Alternatively, you can put the queryable instance in any class that your view has access to:
+///
+/// ```swift
+/// class SomeObservableObject: ObservableObject {
+///   let var deletionConfirmation = Queryable<String, Bool>()
+/// }
+///
+/// struct MyView: View {
+///   @StateObject private var someObservableObject = SomeObservableObject()
+/// }
+/// ```
+///
 /// Then, use one of the `queryable` prefixed presentation modifiers to show the deletion confirmation. For instance, here we use an alert:
 ///
 /// ```swift
@@ -49,7 +61,7 @@ import Combine
 ///     }
 /// ```
 ///
-/// To actually present the alert and await the boolean result, call ``Queryable/Queryable/Trigger/query(with:)`` on the ``Queryable/Queryable`` property.
+/// To actually present the alert and await the boolean result, call ``Queryable/Queryable/query(with:)`` on the ``Queryable/Queryable`` property.
 /// This will activate the alert presentation which can then resolve the query in its completion handler.
 ///
 /// ```swift
@@ -59,7 +71,7 @@ import Combine
 /// } catch {}
 /// ```
 ///
-/// When the Task that calls ``Queryable/Queryable/Trigger/query(with:)`` is cancelled, the suspended query will also cancel and deactivate (i.e. close) the wrapped navigation presentation.
+/// When the Task that calls ``Queryable/Queryable/query(with:)`` is cancelled, the suspended query will also cancel and deactivate (i.e. close) the wrapped navigation presentation.
 /// In that case, a ``Queryable/QueryCancellationError`` error is thrown.
 @MainActor public final class Queryable<Input, Result>: ObservableObject where Input: Sendable, Result: Sendable {
     private let queryConflictPolicy: QueryConflictPolicy
