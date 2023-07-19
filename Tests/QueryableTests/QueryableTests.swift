@@ -5,7 +5,7 @@ import XCTest
 final class QueryableTests: XCTestCase {
 
     func testBasic() async throws {
-        let queryable = Queryable<Void, Bool>(queryConflictPolicy: .cancelNewQuery)
+        let queryable = Queryable<Void, Bool>()
         _ = QueryableObserver(queryable: queryable) { queryId, resolver in
             if queryId == "0" {
                 resolver.answer(with: true)
@@ -27,7 +27,7 @@ final class QueryableTests: XCTestCase {
     
     /// Tests a simple Queryable with a Boolean input value where the observer answers them with the flipped value.
     func testInput() async throws {
-        let queryable = Queryable<Bool, Bool>(queryConflictPolicy: .cancelNewQuery)
+        let queryable = Queryable<Bool, Bool>()
         _ = QueryableObserver(queryable: queryable) { queryId, item, resolver in
             if queryId == "0" {
                 resolver.answer(with: !item)

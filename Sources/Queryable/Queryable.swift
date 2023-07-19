@@ -35,7 +35,7 @@ import Combine
 ///
 /// ```swift
 /// class SomeObservableObject: ObservableObject {
-///   let var deletionConfirmation = Queryable<String, Bool>()
+///   let deletionConfirmation = Queryable<String, Bool>()
 /// }
 ///
 /// struct MyView: View {
