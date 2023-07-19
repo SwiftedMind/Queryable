@@ -74,11 +74,11 @@ import Combine
 /// When the Task that calls ``Queryable/Queryable/query(with:)`` is cancelled, the suspended query will also cancel and deactivate (i.e. close) the wrapped navigation presentation.
 /// In that case, a ``Queryable/QueryCancellationError`` error is thrown.
 @MainActor public final class Queryable<Input, Result>: ObservableObject where Input: Sendable, Result: Sendable {
-    private let queryConflictPolicy: QueryConflictPolicy
+    let queryConflictPolicy: QueryConflictPolicy
     var storedContinuationState: ContinuationState?
 
     /// Optional item storing the input value for a query and is used to indicate if the query has started, which usually coincides with a presentation being shown.
-    var itemContainer: ItemContainer?
+    @Published var itemContainer: ItemContainer?
 
     public init(queryConflictPolicy: QueryConflictPolicy = .cancelNewQuery) {
         self.queryConflictPolicy = queryConflictPolicy
@@ -93,7 +93,10 @@ import Combine
     /// Creating multiple queries at the same time will cause a query conflict which is resolved using the ``Queryable/QueryConflictPolicy`` defined in the initializer of ``Queryable/Queryable``. The default policy is ``Queryable/QueryConflictPolicy/cancelPreviousQuery``.
     /// - Returns: The result of the query.
     public func query(with item: Input) async throws -> Result {
-        let id = UUID()
+        try await query(with: item, id: UUID().uuidString)
+    }
+
+    internal func query(with item: Input, id: String) async throws -> Result {
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 storeContinuation(continuation, withId: id, item: item)
@@ -103,6 +106,10 @@ import Combine
                 await autoCancelContinuation(id: id, reason: .taskCancelled)
             }
         }
+    }
+
+    internal func query(id: String) async throws -> Result where Input == Void {
+        try await query(with: Void(), id: id)
     }
 
     /// Requests the collection of data by starting a query on the `Result` type, providing an input value.
@@ -130,7 +137,7 @@ import Combine
 
     func storeContinuation(
         _ newContinuation: CheckedContinuation<Result, Swift.Error>,
-        withId id: UUID,
+        withId id: String,
         item: Input
     ) {
         if let storedContinuationState {
@@ -159,7 +166,7 @@ import Combine
         itemContainer = .init(queryId: id, item: item, resolver: resolver)
     }
 
-    func autoCancelContinuation(id: UUID, reason: AutoCancelReason) {
+    func autoCancelContinuation(id: String, reason: AutoCancelReason) {
         // If the user cancels a query programmatically and immediately starts the next one, we need to prevent the `QueryInternalError.queryAutoCancel` from the `onDisappear` handler of the canceled query to cancel the new query. That's why the presentations store an id
         if storedContinuationState?.queryId == id {
             switch reason {
@@ -178,7 +185,7 @@ import Combine
 
     // MARK: - Private Interface
 
-    private func resumeContinuation(returning result: Result, queryId: UUID) {
+    private func resumeContinuation(returning result: Result, queryId: String) {
         guard itemContainer?.id == queryId else { return }
         storedContinuationState?.continuation.resume(returning: result)
         storedContinuationState = nil
@@ -186,7 +193,7 @@ import Combine
         itemContainer = nil
     }
 
-    private func resumeContinuation(throwing error: Error, queryId: UUID) {
+    private func resumeContinuation(throwing error: Error, queryId: String) {
         guard itemContainer?.id == queryId else { return }
         storedContinuationState?.continuation.resume(throwing: error)
         storedContinuationState = nil
@@ -199,14 +206,14 @@ import Combine
 
 extension Queryable {
     struct ItemContainer: Sendable, Identifiable {
-        var id: UUID { queryId }
-        let queryId: UUID
+        var id: String { queryId }
+        let queryId: String
         var item: Input
         var resolver: QueryResolver<Result>
     }
 
     struct ContinuationState: Sendable {
-        let queryId: UUID
+        let queryId: String
         var continuation: CheckedContinuation<Result, Swift.Error>
     }
 

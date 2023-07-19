@@ -1,7 +1,7 @@
 import SwiftUI
 
 private struct QueryableAlertModifier<Item, Result, Actions: View, Message: View>: ViewModifier {
-    @State private var ids: [UUID] = []
+    @State private var ids: [String] = []
 
     @ObservedObject var queryable: Queryable<Item, Result>
     var title: String
