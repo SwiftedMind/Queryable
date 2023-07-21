@@ -23,7 +23,7 @@
 import Foundation
 import Combine
 
-/// A property wrapper type that can trigger a view presentation from within an `async` function and `await` its completion and potential result value.
+/// A type that can trigger a view presentation from within an `async` function and `await` its completion and potential result value.
 ///
 /// An example use case would be a boolean coming from a confirmation dialog view. First, create a property of the desired data type:
 ///
