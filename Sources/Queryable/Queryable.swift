@@ -96,22 +96,6 @@ import Combine
         try await query(with: item, id: UUID().uuidString)
     }
 
-    internal func query(with item: Input, id: String) async throws -> Result {
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                storeContinuation(continuation, withId: id, item: item)
-            }
-        } onCancel: {
-            Task {
-                await autoCancelContinuation(id: id, reason: .taskCancelled)
-            }
-        }
-    }
-
-    internal func query(id: String) async throws -> Result where Input == Void {
-        try await query(with: Void(), id: id)
-    }
-
     /// Requests the collection of data by starting a query on the `Result` type, providing an input value.
     ///
     /// This method will suspend for as long as the query is unanswered and not cancelled. When the parent Task is cancelled, this method will immediately cancel the query and throw a ``Queryable/QueryCancellationError`` error.
@@ -132,8 +116,48 @@ import Combine
     public var isQuerying: Bool {
         itemContainer != nil
     }
+    
+    /// An `AsyncStream` observing incoming queries and emitting their inputs and resolver to handle manually.
+    ///
+    /// Only use this, if you need more fine-grained control over the Queryable, i.e. setting view states yourself or adding tests.
+    /// In most cases, you should prefer to use one of the `.queryable[...]` view modifiers instead.
+    ///
+    /// - Warning: Do not implement both a manual query observation as well as a `.queryable[...]` view modifier for the same Queryable instance.
+    /// This will result in unexpected behavior.
+    public var queryObservation: AsyncStream<QueryObservation<Input, Result>> {
+        AsyncStream(bufferingPolicy: .unbounded) { continuation in
+            let task = Task {
+                for await container in $itemContainer.values {
+                    if Task.isCancelled { return }
+                    if let container {
+                        continuation.yield(.init(queryId: container.id, input: container.item, resolver: container.resolver))
+                    }
+                }
+            }
+
+            continuation.onTermination = { _ in
+                task.cancel()
+            }
+        }
+    }
 
     // MARK: - Internal Interface
+
+    func query(with item: Input, id: String) async throws -> Result {
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                storeContinuation(continuation, withId: id, item: item)
+            }
+        } onCancel: {
+            Task {
+                await autoCancelContinuation(id: id, reason: .taskCancelled)
+            }
+        }
+    }
+
+    func query(id: String) async throws -> Result where Input == Void {
+        try await query(with: Void(), id: id)
+    }
 
     func storeContinuation(
         _ newContinuation: CheckedContinuation<Result, Swift.Error>,
