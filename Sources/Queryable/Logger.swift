@@ -30,7 +30,7 @@ public struct QueryableLogger {
     ///
     /// This can be useful for debugging.
     /// - Parameter subsystem: The subsystem. If none is provided, the bundle's identifier will try to be used and if it is specifically set to `nil`, then `Queryable` will be used.
-    static func configure(inSubsystem subsystem: String? = Bundle.main.bundleIdentifier) {
+    public static func configure(inSubsystem subsystem: String? = Bundle.main.bundleIdentifier) {
         logger = .init(subsystem: subsystem ?? "Queryable", category: "Queryable")
     }
 
