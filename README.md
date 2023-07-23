@@ -305,7 +305,7 @@ Currently, these are the view modifiers that support being controlled by a `Quer
 
 ## Updating to Queryable 2.0.0
 
-Please see the [Migration Guide](/).
+Please see the [Migration Guide](https://github.com/SwiftedMind/Queryable/blob/main/MIGRATIONS.md).
 
 ## License
 
