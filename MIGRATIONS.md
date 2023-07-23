@@ -15,7 +15,7 @@ In all your views, replace the following line:
 with this:
 
 ```swift
-@StateObject var myQueryable = @Queryable<Input, Result>
+@StateObject var myQueryable = Queryable<Input, Result>
 ```
 
 The `@StateObject` is only there to let SwiftUI handle the lifecycle of the object, it serves no other purpose.
