@@ -46,7 +46,7 @@ You can also initialize and store a `Queryable` inside a view model or any other
 - [Installation](#installation)
 - **[Get Started](#get-started)**
 - [Supported Queryable Modifiers](#supported-queryable-modifiers)
-- [Updating to Queryable 2.0.0](#updating-to-queryable-2.0.0)
+- [Updating to Queryable 2.0.0](#updating-to-queryable-200)
 - [License](#license)
 
 ## Installation
