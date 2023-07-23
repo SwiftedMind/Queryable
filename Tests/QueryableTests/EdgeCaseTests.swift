@@ -20,19 +20,39 @@
 //  SOFTWARE.
 //
 
-import Foundation
-import OSLog
 
-fileprivate(set) var logger: Logger = .init(OSLog.disabled)
+import XCTest
+@testable import Queryable
 
-public struct QueryableLogger {
-    /// Configures and enables a logger that prints out log messages for events inside the Queryable framework.
-    ///
-    /// This can be useful for debugging.
-    /// - Parameter subsystem: The subsystem. If none is provided, the bundle's identifier will try to be used and if it is specifically set to `nil`, then `Queryable` will be used.
-    static func configure(inSubsystem subsystem: String? = Bundle.main.bundleIdentifier) {
-        logger = .init(subsystem: subsystem ?? "Queryable", category: "Queryable")
+@MainActor
+final class EdgeCaseTests: XCTestCase {
+
+    private let firstQueryId: String = "firstQueryId"
+    private let secondQueryId: String = "secondQueryId"
+
+    override func setUp() async throws {
+        executionTimeAllowance = 5
+        continueAfterFailure = false
     }
 
-    private init() {}
+    func testDoubleAnswer() async throws {
+        let queryable = Queryable<Void, Bool>()
+
+        let task = Task {
+            for await observation in queryable.queryObservation {
+                observation.resolver.answer(with: true)
+                observation.resolver.answer(with: false) // Queryable should ignore this and also don't crash
+                return
+            }
+        }
+
+        do {
+            let trueResult = try await queryable.query()
+            XCTAssertTrue(trueResult)
+        } catch {
+            XCTFail()
+        }
+
+        await task.value
+    }
 }

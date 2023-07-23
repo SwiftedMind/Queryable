@@ -20,19 +20,13 @@
 //  SOFTWARE.
 //
 
-import Foundation
-import OSLog
+public struct QueryObservation<Input, Result>: Sendable where Input: Sendable, Result: Sendable {
+    /// The unique id of the current query.
+    var queryId: String
 
-fileprivate(set) var logger: Logger = .init(OSLog.disabled)
+    /// The input value of the query.
+    public var input: Input
 
-public struct QueryableLogger {
-    /// Configures and enables a logger that prints out log messages for events inside the Queryable framework.
-    ///
-    /// This can be useful for debugging.
-    /// - Parameter subsystem: The subsystem. If none is provided, the bundle's identifier will try to be used and if it is specifically set to `nil`, then `Queryable` will be used.
-    static func configure(inSubsystem subsystem: String? = Bundle.main.bundleIdentifier) {
-        logger = .init(subsystem: subsystem ?? "Queryable", category: "Queryable")
-    }
-
-    private init() {}
+    /// The `QueryResolver` that you can use to resolve the query.
+    public var resolver: QueryResolver<Result>
 }

@@ -1,0 +1,27 @@
+{
+  "configurations" : [
+    {
+      "id" : "5CCFDF89-BE72-45C1-9377-DF7D60125122",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "defaultTestExecutionTimeAllowance" : 60,
+    "maximumTestExecutionTimeAllowance" : 60,
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "QueryableTests",
+        "name" : "QueryableTests"
+      }
+    }
+  ],
+  "version" : 1
+}
