@@ -1,4 +1,5 @@
 
+
 <p align="center">
   <img width="200" height="200" src="https://user-images.githubusercontent.com/7083109/231827191-7472e663-a8f2-42c6-a7aa-77bb38ae484a.png">
 </p>
@@ -9,14 +10,14 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/SwiftedMind/Queryable?label=Latest%20Release)
 ![GitHub](https://img.shields.io/github/license/SwiftedMind/Queryable)
 
-`Queryable` is a property wrapper that can trigger a view presentation and `await` its completion from a single `async` function call, while fully hiding the state handling of the presented view.
+`Queryable` is a type that lets you trigger a view presentation and `await` its completion from a single `async` function call, fully hiding the necessary state handling of the presented view.
 
 ```swift
 import SwiftUI
 import Queryable
 
 struct ContentView: View {
-  @Queryable<Void, Bool> var buttonConfirmation
+  @StateObject var buttonConfirmation = Queryable<Void, Bool>()
 
   var body: some View {
     Button("Commit", action: confirm)
@@ -40,9 +41,12 @@ struct ContentView: View {
 
 Not only does this free the presented view from any kind of context (it simply provides an answer to the query), but you can also pass `buttonConfirmation` down the view hierarchy so that any child view can conveniently trigger the confirmation without needing to deal with the actually displayed UI. It works with `alerts`, `confirmationDialogs`, `sheets`, `fullScreenCover` and fully custom `overlays`.
 
+You can also initialize and store a `Queryable` inside a view model or any other class that the consuming views have access to.
+
 - [Installation](#installation)
 - **[Get Started](#get-started)**
 - [Supported Queryable Modifiers](#supported-queryable-modifiers)
+- [Updating to Queryable 2.0.0](#updating-to-queryable-2.0.0)
 - [License](#license)
 
 ## Installation
@@ -54,7 +58,7 @@ Queryable supports iOS 15+, macOS 12+, watchOS 8+ and tvOS 15+.
 Add the following line to the dependencies in your `Package.swift` file:
 
 ```swift
-.package(url: "https://github.com/SwiftedMind/Queryable", from: "1.0.0")
+.package(url: "https://github.com/SwiftedMind/Queryable", from: "2.0.0")
 ```
 
 ### In Xcode project
@@ -70,8 +74,16 @@ import SwiftUI
 import Queryable
 
 struct ContentView: View {
-  @Queryable<Void, Bool> var buttonConfirmation
+  @StateObject var buttonConfirmation = Queryable<Void, Bool>()
   /* ... */
+}
+```
+
+You can also define the Queryable inside a class, like this:
+
+```swift
+@MainActor class MyViewModel: ObservableObject {
+  let buttonConfirmation = Queryable<Void, Bool>()
 }
 ```
 
@@ -145,7 +157,7 @@ struct ContentView: View {
 
 The idea is that this `query()` method would suspend the current task, somehow toggle the presentation of the alert and then resume with the result, all without us ever leaving the scope. The entire user interaction with the UI is contained in this single line.
 
-And that is exactly what `Queryable` does. It's a property wrapper that you can add within any SwiftUI `View` to control view presentations from asynchronous contexts. Here's what it looks like:
+And that is exactly what `Queryable` does. It's a type you can use to control view presentations from asynchronous contexts. Here's what it looks like:
 
 ```swift
 import SwiftUI
@@ -154,7 +166,7 @@ import Queryable
 struct ContentView: View {
   // Since we don't need to provide data with the confirmation, we pass `Void` as the Input.
   // The Result type should be a Bool.
-  @Queryable<Void, Bool> var buttonConfirmation
+  @StateObject var buttonConfirmation = Queryable<Void, Bool>()
 
   var body: some View {
     Button("Commit") {
@@ -198,7 +210,7 @@ import Queryable
 
 struct MyChildView: View {
   // Passed from a parent view
-  var buttonConfirmation: Queryable<Void, Bool>.Trigger
+  var buttonConfirmation: Queryable<Void, Bool>
 
   var body: some View {
     Button("Confirm Here Instead") {
@@ -234,7 +246,7 @@ struct PlayerItem {
 }
 
 struct PlayerListView: View {
-  @Queryable<PlayerItem, PlayerItem> var playerCreation
+  @StateObject var playerCreation = Queryable<PlayerItem, PlayerItem>()
   
   var body: some View {
     /* ... */
@@ -272,11 +284,11 @@ In all of the above cases, a `QueryCancellationError` will be thrown.
 
 ### Handling Conflicts
 
-If you try to start a query while another one is already ongoing, there will be a conflict. The default behavior in that situation is for the previous query to be cancelled. You can alter that by specifying a `QueryConflictPolicy` for you `Queryable`, like so:
+If you try to start a query while another one is already ongoing, there will be a conflict. The default behavior in that situation is for the new query to be cancelled. You can alter that by specifying a `QueryConflictPolicy` during initialization, like so:
 
 ```swift
-@Queryable<Void, Bool>(queryConflictPolicy: .cancelNewQuery) var buttonConfirmation
-@Queryable<Void, Bool>(queryConflictPolicy: .cancelPreviousQuery) var otherButtonConfirmation
+Queryable<Void, Bool>(queryConflictPolicy: .cancelNewQuery)
+Queryable<Void, Bool>(queryConflictPolicy: .cancelPreviousQuery)
 ```
 
 
@@ -291,6 +303,9 @@ Currently, these are the view modifiers that support being controlled by a `Quer
 - `queryableOverlay(controlledBy:animation:alignment:content:)`
 - `queryableClosure(controlledBy:block:)`
 
+## Updating to Queryable 2.0.0
+
+Please see the [Migration Guide](/).
 
 ## License
 
