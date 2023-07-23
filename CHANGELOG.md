@@ -4,7 +4,7 @@
 
 ### New
 
-- **Breaking:** The `@Queryable` property wrapper has been replaced by a `Queryable` class conforming to `ObservableObject`. This is an unfortunate breaking change, but it allows you to define Queryables literally *anywhere* in your app, i.e. in your views, view models or any other class your views have access to in some way. Please see the [Migration Guide]() for instructions on how to modify your existing code base. I'm sorry for the inconvenience of this, but I do believe it's going to be worth it.
+- **Breaking:** The `@Queryable` property wrapper has been replaced by a `Queryable` class conforming to `ObservableObject`. This is an unfortunate breaking change, but it allows you to define Queryables literally *anywhere* in your app, i.e. in your views, view models or any other class your views have access to in some way. Please see the [Migration Guide](https://github.com/SwiftedMind/Queryable/blob/main/MIGRATIONS.md) for instructions on how to modify your existing code base. I'm sorry for the inconvenience of this, but I do believe it's going to be worth it.
 
 - Added Unit Tests to reduce the chance of introducing bugs or broken functionality when making future modifications. The test suite will be continuously expanded.
 
