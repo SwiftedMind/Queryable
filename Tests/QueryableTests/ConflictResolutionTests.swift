@@ -23,11 +23,8 @@
 import XCTest
 @testable import Queryable
 
-private struct TestError: Error {}
-private struct UnexpectedBehavior: Error {}
-
 @MainActor
-final class QueryableTests: XCTestCase {
+final class ConflictResolutionTests: XCTestCase {
 
     private let firstQueryId: String = "firstQueryId"
     private let secondQueryId: String = "secondQueryId"
@@ -37,117 +34,8 @@ final class QueryableTests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testBasic() async throws {
-        let queryable = Queryable<Void, Bool>()
 
-        let task = Task {
-            for await observation in queryable.queryObservation {
-                observation.resolver.answer(with: true)
-                return
-            }
-        }
-
-        do {
-            let trueResult = try await queryable.query()
-            XCTAssertTrue(trueResult)
-        } catch {
-            XCTFail()
-        }
-
-        await task.value
-    }
-
-    func testBasicThrowing() async throws {
-        let queryable = Queryable<Void, Bool>()
-
-        let task = Task {
-            for await observation in queryable.queryObservation {
-                observation.resolver.answer(throwing: TestError())
-                return
-            }
-        }
-
-        do {
-            _ = try await queryable.query()
-            XCTFail()
-        } catch {
-            XCTAssert(error is TestError, "Unexpected error was thrown")
-        }
-
-        await task.value
-    }
-
-    func testCancellation() async throws {
-        let queryable = Queryable<Void, Void>()
-
-        let task = Task {
-            for await _ in queryable.queryObservation {
-                queryable.cancel()
-                return
-            }
-        }
-
-        do {
-            _ = try await queryable.query()
-            XCTFail()
-        } catch is QueryCancellationError {
-            // Expected
-        } catch {
-            XCTFail()
-        }
-
-        await task.value
-    }
-
-    func testTaskCancellation() async throws {
-        let queryable = Queryable<Void, Void>()
-
-        let task = Task {
-            await withTaskGroup(of: Void.self) { group in
-
-                group.addTask {
-                    do {
-                        _ = try await queryable.query()
-                        XCTFail()
-                    } catch is QueryCancellationError {
-                        // Expected
-                    } catch {
-                        XCTFail()
-                    }
-                }
-
-                group.cancelAll()
-            }
-        }
-
-        await task.value
-    }
-
-
-    /// Tests a simple Queryable with a Boolean input value where the observer answers them with the flipped value.
-    func testInput() async throws {
-        let queryable = Queryable<Bool, Bool>()
-
-        let task = Task {
-            for await observation in queryable.queryObservation {
-                observation.resolver.answer(with: !observation.input)
-            }
-        }
-
-        do {
-            let trueResult = try await queryable.query(with: true, id: firstQueryId)
-            XCTAssertFalse(trueResult)
-
-            let falseResult = try await queryable.query(with: false, id: secondQueryId)
-            XCTAssertTrue(falseResult)
-        } catch {
-            XCTFail()
-        }
-
-        task.cancel()
-    }
-
-    func testConflictResolutionCancelNewQuery() async throws {
+    func testCancelNewQuery() async throws {
         let queryable = Queryable<Void, Void>(queryConflictPolicy: .cancelNewQuery)
 
         let task = Task {
@@ -197,7 +85,7 @@ final class QueryableTests: XCTestCase {
         await task.value
     }
 
-    func testConflictResolutionCancelPreviousQuery() async throws {
+    func testPreviousQuery() async throws {
         let queryable = Queryable<Void, Void>(queryConflictPolicy: .cancelPreviousQuery)
 
         let task = Task {

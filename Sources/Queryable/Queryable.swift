@@ -121,10 +121,12 @@ import Combine
     ///
     /// Only use this, if you need more fine-grained control over the Queryable, i.e. setting view states yourself or adding tests.
     /// In most cases, you should prefer to use one of the `.queryable[...]` view modifiers instead.
+    /// - Warning: With this, there will be no way of knowing when a query has been cancelled external
+    /// (a sheet that was closed through a gesture, or a system dialog that has overridden any app dialogs)
     ///
     /// - Warning: Do not implement both a manual query observation as well as a `.queryable[...]` view modifier for the same Queryable instance.
     /// This will result in unexpected behavior.
-    public var queryObservation: AsyncStream<QueryObservation<Input, Result>> {
+    var queryObservation: AsyncStream<QueryObservation<Input, Result>> {
         AsyncStream(bufferingPolicy: .unbounded) { continuation in
             let task = Task {
                 for await container in $itemContainer.values {
@@ -229,14 +231,14 @@ import Combine
 // MARK: - Auxiliary Types
 
 extension Queryable {
-    struct ItemContainer: Sendable, Identifiable {
+    struct ItemContainer: Identifiable {
         var id: String { queryId }
         let queryId: String
         var item: Input
         var resolver: QueryResolver<Result>
     }
 
-    struct ContinuationState: Sendable {
+    struct ContinuationState {
         let queryId: String
         var continuation: CheckedContinuation<Result, Swift.Error>
     }
