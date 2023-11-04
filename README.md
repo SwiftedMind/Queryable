@@ -1,6 +1,6 @@
 <img width="100" height="100" src="https://user-images.githubusercontent.com/7083109/231827191-7472e663-a8f2-42c6-a7aa-77bb38ae484a.png">
 
-# Queryable - Asynchronous View Presentations in SwiftUI
+# Queryable
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FSwiftedMind%2FQueryable%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/SwiftedMind/Queryable)
 [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FSwiftedMind%2FQueryable%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/SwiftedMind/Queryable)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/SwiftedMind/Queryable?label=Latest%20Release)
