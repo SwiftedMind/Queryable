@@ -34,16 +34,13 @@ public struct IfQueryable<Item, Result, QueryContent: View>: View {
     }
 
     public var body: some View {
-        ZStack {
-            if let initialItemContainer = queryable.itemContainer {
-                StableItemContainerView(itemContainer: initialItemContainer) { itemContainer in
-                    queryContent(itemContainer.item, initialItemContainer.resolver)
-                        .onDisappear {
-                            queryable.autoCancelContinuation(id: itemContainer.id, reason: .presentationEnded)
-                        }
-                }
+        if let initialItemContainer = queryable.itemContainer {
+            StableItemContainerView(itemContainer: initialItemContainer) { itemContainer in
+                queryContent(itemContainer.item, initialItemContainer.resolver)
+                    .onDisappear {
+                        queryable.autoCancelContinuation(id: itemContainer.id, reason: .presentationEnded)
+                    }
             }
         }
-        .animation(animation, value: queryable.itemContainer == nil)
     }
 }
