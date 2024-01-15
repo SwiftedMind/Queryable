@@ -25,6 +25,14 @@ public struct IfQueryable<Item, Result, QueryContent: View>: View {
         self.queryContent = queryContent
     }
 
+    public init(
+        _ queryable: Queryable<Void, Result>,
+        @ViewBuilder queryContent: @escaping (_ query: QueryResolver<Result>) -> QueryContent
+    ) where Item == Void {
+        self.queryable = queryable
+        self.queryContent = { _, query in queryContent(query) }
+    }
+
     public var body: some View {
         ZStack {
             if let initialItemContainer = queryable.itemContainer {
