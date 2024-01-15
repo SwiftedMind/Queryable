@@ -9,8 +9,6 @@ import SwiftUI
 
 public struct IfQueryable<Item, Result, QueryContent: View>: View {
     @ObservedObject private var queryable: Queryable<Item, Result>
-    private var animation: Animation? = nil
-    private var alignment: Alignment = .center
     private var queryContent: (_ item: Item, _ query: QueryResolver<Result>) -> QueryContent
 
     public init(
