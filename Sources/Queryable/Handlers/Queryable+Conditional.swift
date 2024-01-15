@@ -13,13 +13,9 @@ public struct WithQuery<Item, Result, QueryContent: View>: View {
 
     public init(
         _ queryable: Queryable<Item, Result>,
-        animation: Animation? = nil,
-        alignment: Alignment = .center,
         @ViewBuilder queryContent: @escaping (_ item: Item, _ query: QueryResolver<Result>) -> QueryContent
     ) {
         self.queryable = queryable
-        self.animation = animation
-        self.alignment = alignment
         self.queryContent = queryContent
     }
 
